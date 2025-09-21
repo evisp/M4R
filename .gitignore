@@ -1,0 +1,99 @@
+# AI Matching System - Generated Files & Data
+# ==========================================
+
+# Data files (exclude all real and sample data)
+data/sample/*.json
+data/processed/
+data/raw/
+*.json
+
+# Vector database and embeddings
+*.index
+*.metadata
+*embeddings_cache*
+faiss_index.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Model files (can be large)
+*.bin
+*.h5
+*.onnx
+models/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
