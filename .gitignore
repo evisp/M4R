@@ -6,6 +6,7 @@ data/sample/*.json
 data/processed/
 data/raw/
 *.json
+*.sql 
 
 # Vector database and embeddings
 *.index

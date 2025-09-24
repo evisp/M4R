@@ -84,7 +84,7 @@ class TextGenerator:
         team_size = org_data.get('teamSize', 'Unknown')
         
         # Extract areas of interest
-        interests_raw = org_data.get('areasOfInterests', [])
+        interests_raw = org_data.get('areasOfInterest', [])
         interests = [area.get('industry', '') for area in interests_raw if area.get('industry')]
         interests_text = ', '.join(interests) if interests else 'Not specified'
         
@@ -213,7 +213,7 @@ class TextGenerator:
                 'id': project.get('id'),
                 'original_data': project,
                 'text_representation': text_repr,
-                'entity_type': 'project_call'
+                'entity_type': 'project_calls'   # fixed for consistency
             })
         
         return results

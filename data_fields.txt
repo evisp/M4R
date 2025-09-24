@@ -1,0 +1,137 @@
+SELECT DISTINCT type FROM individual ORDER BY type;
+
+'professional/consultant'
+'student/early-career'
+
+
+SELECT DISTINCT type FROM organization ORDER BY type;
+'publicInstitution'
+'startup'
+
+
+SELECT applicant_types FROM open_call;
+["professional", "student", "research_center", "startup", "company", "entrepreneur", "research", "non_profit", "government_agency"]
+["research", "academic_institution"]
+["entrepreneur", "research_center"]
+["professional", "academic_institution", "student"]
+["professional", "academic_institution", "student"]
+["research", "academic_institution"]
+["company", "academic_institution"]
+["entrepreneur", "company", "non_profit", "academic_institution"]
+["research", "entrepreneur", "company", "non_profit", "government_agency", "research_center", "academic_institution", "student", "professional", "startup"]
+["professional", "academic_institution", "student"]
+["company", "academic_institution"]
+
+SELECT JSON_UNQUOTE(JSON_EXTRACT(applicant_types, '$[0]')) AS first_applicant_type FROM open_call;
+
+professional
+research
+entrepreneur
+professional
+professional
+research
+company
+entrepreneur
+research
+professional
+company
+
+SELECT DISTINCT type FROM open_call ORDER BY type;
+
+challenge-competition
+fellowship-scholarship
+funding-opportunity
+
+SELECT DISTINCT skill FROM skill ORDER BY skill;
+Agile Methodologies
+API Integration
+Artificial Intelligence
+Bioinformatics
+Blockchain Development
+Budgeting & Cost Analysis
+Business Development
+Change Management
+Cloud Computing
+Coaching / Mentoring
+Commercialization Strategy
+Communication
+Community Engagement
+Conflict Resolution
+Cross-cultural Communication
+Cross-disciplinary Collaboration
+Cybersecurity
+Data Analysis
+Data Visualization
+Database Management / SQL
+Design Thinking
+DevOps
+Ethical Decision Making
+Financial Planning
+Fundraising
+Geographic Information Systems (GIS)
+Grant Writing
+Innovation Management
+Laboratory Techniques
+Leadership
+Literature Review & Synthesis
+Machine Learning
+Monitoring & Evaluation
+Negotiation
+Partnership Building
+Policy Analysis
+Programming (e.g., Python, R, Java)
+Project Management
+Proposal Development
+Prototyping
+Public Speaking
+Report Writing
+Research Design
+Risk Management
+Scientific Writing
+Simulation & Modeling
+Software Development
+Stakeholder Management
+Statistical Modeling
+Storytelling for Research & Impact
+Strategic Foresight
+Systems Architecture
+Systems Thinking
+Team Facilitation
+UX/UI Design
+
+
+SELECT DISTINCT industry FROM industry ORDER BY industry;
+Artificial Intelligence & Machine Learning
+Behavioral & Social Sciences
+Biotechnology & Bioengineering
+Blockchain & Web3
+Circular Economy
+Climate, Environment & Sustainability
+Construction & Built Environment
+Cultural Heritage & Creative Industries
+Cybersecurity
+Data Science & Analytics
+Disaster Risk Management & Resilience
+Economics & Finance
+Education, Skills & Digital Learning
+Energy & Clean Tech
+Ethics & Responsible Innovation
+FinTech & Digital Economy
+Gender Equality & Diversity
+Health & Life Sciences
+Human Rights & Development
+Industry 4.0 & Advanced Manufacturing
+Information & Communication Technologies (ICT)
+LegalTech & Public Policy
+Materials Science & Nanotechnology
+Migration & Demographics
+Peace, Justice & Human Rights
+Public Policy & Governance
+Quantum Technologies
+Robotics & Automation
+Smart Cities & Urban Innovation
+Social Innovation & Inclusion
+Space Technology
+Tourism & Experience Economy
+Transportation & Mobility
+Water Management
