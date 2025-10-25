@@ -19,12 +19,12 @@ def main():
     # Try to load complete index first (FASTEST)
     print("Loading cached FAISS index...")
     if vector_store.load_index():
-        print("✅ Loaded complete index from cache!")
+        print("Loaded complete index from cache!")
         
         # Still need embeddings data for matching engine
         embeddings_data = embedding_service.load_embeddings()
         if not embeddings_data:
-            print("❌ Need embeddings data for matching engine")
+            print("Need embeddings data for matching engine")
             return
         
         matching_engine.set_embeddings_data(embeddings_data)
@@ -35,7 +35,7 @@ def main():
         embeddings_data = embedding_service.load_embeddings()
         
         if not embeddings_data:
-            print("❌ No cached data found!")
+            print("No cached data found!")
             print("Run 'python3 main.py' first to build the database.")
             return
         
@@ -47,7 +47,7 @@ def main():
     
     # Quick stats
     stats = vector_store.get_stats()
-    print(f"✅ Ready! {stats['total_vectors']} vectors loaded")
+    print(f"Ready! {stats['total_vectors']} vectors loaded")
     print(f"   {stats['entity_type_counts']}")
     
     # Interactive testing
@@ -123,10 +123,10 @@ def main():
                 display_recommendations(recommendations)
             
             else:
-                print("❌ Invalid choice. Please try again.")
+                print("Invalid choice. Please try again.")
                 
         except ValueError:
-            print("❌ Please enter a valid number or 'q' to quit.")
+            print("Please enter a valid number or 'q' to quit.")
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
             break
@@ -135,33 +135,33 @@ def main():
 def display_recommendations(recommendations):
     """Display recommendations in a nice format"""
     if not recommendations:
-        print("   📭 No recommendations found")
+        print("   No recommendations found")
         return
     
-    print(f"   📋 Found {len(recommendations)} recommendations:")
+    print(f"   Found {len(recommendations)} recommendations:")
     print()
     
     for i, rec in enumerate(recommendations, 1):
         # Header
-        print(f"   {i}. 🎯 {rec['project_title']}")
-        print(f"      📊 Score: {rec['match_score']:.3f} ({rec['confidence']} confidence)")
+        print(f"   {i}. {rec['project_title']}")
+        print(f"      Score: {rec['match_score']:.3f} ({rec['confidence']} confidence)")
         
         # Project details
-        print(f"      🏢 Organization: {rec['organization_name']}")
-        print(f"      📝 Type: {rec['project_type']}")
-        print(f"      💰 Budget: {rec['project_summary']['budget']}")
-        print(f"      📍 Location: {rec['project_summary']['location']}")
-        print(f"      ⏱️  Duration: {rec['project_summary']['duration']}")
-        print(f"      🚀 Delivery: {rec['project_summary']['delivery']}")
+        print(f"      Organization: {rec['organization_name']}")
+        print(f"      Type: {rec['project_type']}")
+        print(f"      Budget: {rec['project_summary']['budget']}")
+        print(f"      Location: {rec['project_summary']['location']}")
+        print(f"      Duration: {rec['project_summary']['duration']}")
+        print(f"      Delivery: {rec['project_summary']['delivery']}")
         
         # Match reasons
-        print(f"      ✨ Why it matches: {', '.join(rec['match_reasons'][:3])}")
+        print(f"      Why it matches: {', '.join(rec['match_reasons'][:3])}")
         
         # Summary preview
         summary = rec['project_summary']['summary']
         if summary:
             preview = summary[:100] + "..." if len(summary) > 100 else summary
-            print(f"      📄 Summary: {preview}")
+            print(f"      Summary: {preview}")
         
         print()  
 

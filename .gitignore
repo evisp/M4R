@@ -98,3 +98,4 @@ models/
 *.tmp
 *.temp
 .cache/
+.env

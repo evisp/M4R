@@ -20,7 +20,7 @@ def generate_batch_recommendations(top_k=5, output_file=None):
     
     Args:
         top_k: Number of recommendations per entity
-        output_file: Path to save JSON output (default: data/output/recommendations.json)
+        output_file: Path to save JSON output (default: data/processed/output/recommendations.json)
     
     Returns:
         Dictionary with complete recommendation data
@@ -52,7 +52,7 @@ def generate_batch_recommendations(top_k=5, output_file=None):
         embeddings_data = embedding_service.process_text_representations(text_representations)
         if embeddings_data:
             embedding_service.save_embeddings(embeddings_data)
-        vector_store.load_or_build_index(embeddings_data)
+            vector_store.load_or_build_index(embeddings_data)
     
     matching_engine.set_embeddings_data(embeddings_data)
     
@@ -99,11 +99,10 @@ def generate_batch_recommendations(top_k=5, output_file=None):
     print("\n4. Generating recommendations for individuals...")
     for i, individual in enumerate(individuals, 1):
         user_id = individual['id']
-        # FIXED: camelCase with fallback
         user_name = individual['original_data'].get('fullName', individual['original_data'].get('full_name', 'Unknown'))
         user_type = individual['original_data'].get('type', 'Unknown')
         
-        print(f"   [{i}/{len(individuals)}] Processing: {user_name}")
+        print(f"   [{i}/{len(individuals)}] {user_name}")
         
         # Get recommendations
         recommendations = matching_engine.find_recommendations(
@@ -163,10 +162,9 @@ def generate_batch_recommendations(top_k=5, output_file=None):
         }
         
         results['recommendations']['individuals'].append(individual_result)
-        
         if len(formatted_recs) > 0:
             results['statistics']['individuals_with_matches'] += 1
-            results['statistics']['total_matches_generated'] += len(formatted_recs)
+        results['statistics']['total_matches_generated'] += len(formatted_recs)
     
     # Process organizations
     print(f"\n5. Generating recommendations for organizations...")
@@ -175,7 +173,7 @@ def generate_batch_recommendations(top_k=5, output_file=None):
         org_name = organization['original_data'].get('name', 'Unknown')
         org_type = organization['original_data'].get('type', 'Unknown')
         
-        print(f"   [{i}/{len(organizations)}] Processing: {org_name}")
+        print(f"   [{i}/{len(organizations)}] {org_name}")
         
         # Get recommendations
         recommendations = matching_engine.find_recommendations(
@@ -235,10 +233,9 @@ def generate_batch_recommendations(top_k=5, output_file=None):
         }
         
         results['recommendations']['organizations'].append(org_result)
-        
         if len(formatted_recs) > 0:
             results['statistics']['organizations_with_matches'] += 1
-            results['statistics']['total_matches_generated'] += len(formatted_recs)
+        results['statistics']['total_matches_generated'] += len(formatted_recs)
     
     # Calculate average score
     if all_scores:

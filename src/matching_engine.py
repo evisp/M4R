@@ -3,7 +3,7 @@ Core matching engine for smart recommendations
 """
 import numpy as np
 from typing import Dict, List, Any
-import json  # JSON parsing for applicantTypes field
+import json
 from src.vector_store import VectorStore
 import config
 
@@ -23,7 +23,7 @@ class MatchingEngine:
         seeking = []
         if preferences.get('collaborations'):
             seeking.append('collaboration')
-        if preferences.get('grantFundedProjects'):  # FIXED: camelCase
+        if preferences.get('grantFundedProjects'):
             seeking.extend(['research', 'grant'])
         if preferences.get('funding'):
             seeking.append('funding')
@@ -37,49 +37,50 @@ class MatchingEngine:
             'location': user_data.get('location', 'any'),
             'user_type': user_data.get('type', 'unknown'),
             'skills': [skill.get('skill', '') for skill in user_data.get('skills', [])],
-            'expertise': [area.get('industry', '') for area in user_data.get('areasOfExpertise', [])],  # FIXED: camelCase
+            'expertise': [area.get('industry', '') for area in user_data.get('areasOfExpertise', [])],
         }
 
     def apply_compatibility_filters(self, projects: List[Dict], user_data: Dict) -> List[Dict]:
-        """Filter projects based on compatibility criteria"""
+        """Filter projects - SOFT FILTERING: marks mismatches instead of rejecting"""
         user_prefs = self.get_user_preferences(user_data)
         user_type = user_prefs['user_type']
         user_location = user_prefs['location']
 
-        # UPDATED type mappings - includes new types from database
+        # COMPLETE type mapping including privateOrganisation
         type_mapping = {
-            # Individual types - map to what projects expect
-            'student/early-career': ['student', 'student/early-career'],
-            'professional/consultant': ['professional', 'professional/consultant'],
-            'researcher/academic': ['professional', 'research', 'academic_institution'],  # NEW
-            'entrepreneur/inovator': ['entrepreneur', 'startup', 'company'],  # NEW
+            # Individual types
+            'student/early-career': ['student', 'student/early-career', 'early-career'],
+            'professional/consultant': ['professional', 'consultant', 'professional/consultant'],
+            'researcher/academic': ['professional', 'research', 'researcher', 'academic', 'academic_institution'],
+            'entrepreneur/inovator': ['entrepreneur', 'startup', 'company', 'inovator'],
 
-            # Organization types - map to what projects expect  
-            'publicInstitution': ['professional', 'research', 'academic_institution'],
-            'startup': ['startup', 'company', 'entrepreneur'],
+            # Organization types - COMPLETE
+            'privateOrganisation': ['company', 'startup', 'entrepreneur', 'organization', 'private'],
+            'publicInstitution': ['professional', 'research', 'academic_institution', 'government_agency', 'public', 'institution'],
+            'startup': ['startup', 'company', 'entrepreneur', 'organization'],
+            'non_profit': ['non_profit', 'ngo', 'organization', 'nonprofit'],
 
-            # Project applicant types (keep for reverse compatibility)
-            'professional': ['professional'],
-            'student': ['student'],
-            'research_center': ['research_center'],
-            'company': ['company'],
-            'entrepreneur': ['entrepreneur'],
-            'research': ['research'],
-            'non_profit': ['non_profit'],
-            'government_agency': ['government_agency'],
-            'academic_institution': ['academic_institution'],
+            # Project applicant types
+            'professional': ['professional', 'consultant'],
+            'student': ['student', 'early-career'],
+            'research_center': ['research_center', 'research', 'academic_institution'],
+            'company': ['company', 'startup', 'entrepreneur', 'organization'],
+            'entrepreneur': ['entrepreneur', 'startup', 'company'],
+            'research': ['research', 'researcher', 'academic'],
+            'government_agency': ['government_agency', 'public', 'institution'],
+            'academic_institution': ['academic_institution', 'research', 'university'],
 
             # Fallback
-            'unknown': ['professional', 'student']
+            'unknown': ['professional', 'student', 'organization']
         }
 
-        user_compatible_types = type_mapping.get(user_type, [user_type])
+        user_compatible_types = type_mapping.get(user_type, [user_type.lower()])
         compatible_projects = []
 
         for project in projects:
             project_data = project.get('original_data', {})
 
-            # Parse applicantTypes (handle string or list) - support both camelCase and snake_case
+            # Parse applicantTypes
             applicant_types_raw = project_data.get('applicantTypes', project_data.get('applicant_types', []))
             applicant_types = []
             if isinstance(applicant_types_raw, str):
@@ -90,11 +91,13 @@ class MatchingEngine:
             elif isinstance(applicant_types_raw, list):
                 applicant_types = applicant_types_raw
 
+            # SOFT FILTER: Mark type mismatch instead of rejecting
+            project['_type_mismatch'] = False
             if applicant_types:
                 if not any(utype in applicant_types for utype in user_compatible_types):
-                    continue
+                    project['_type_mismatch'] = True  # Mark but don't reject
 
-            # Location compatibility check
+            # Location compatibility - SOFT FILTER
             project_location = project_data.get('location', 'any')
             delivery = project_data.get('delivery', 'in-person')
             location_compatible = (
@@ -103,10 +106,14 @@ class MatchingEngine:
                 project_location == 'other' or
                 delivery in ['online-virtual', 'hybrid']
             )
-            if not location_compatible:
-                continue
+            project['_location_mismatch'] = not location_compatible
 
-            if project_data.get('status', '').lower() != 'active':
+            # Only reject if BOTH type AND location don't match (very strict case)
+            if project.get('_type_mismatch') and project.get('_location_mismatch'):
+                continue  # Skip only if both fail
+
+            # Skip inactive projects (hard filter)
+            if project_data.get('status', '').lower() not in ['active', '']:
                 continue
 
             compatible_projects.append(project)
@@ -120,13 +127,13 @@ class MatchingEngine:
 
         semantic_score = max(0, similarity_score)
 
-        # Support both camelCase and snake_case
+        # Type scoring with penalty for mismatch
         applicant_types = project_data.get('applicantTypes', project_data.get('applicant_types', []))
         user_type = user_prefs['user_type']
 
-        # Enhanced type scoring for better matching
         type_score = 0.8  # Default
         
+        # Perfect matches
         if user_type == 'professional/consultant' and 'professional' in applicant_types:
             type_score = 1.0
         elif user_type == 'student/early-career' and 'student' in applicant_types:
@@ -137,13 +144,23 @@ class MatchingEngine:
             type_score = 1.0
         elif user_type == 'publicInstitution' and any(t in applicant_types for t in ['research', 'academic_institution', 'professional']):
             type_score = 1.0
+        elif user_type == 'privateOrganisation' and any(t in applicant_types for t in ['company', 'startup', 'entrepreneur', 'organization']):
+            type_score = 1.0
         elif user_type == 'startup' and any(t in applicant_types for t in ['startup', 'company', 'entrepreneur']):
             type_score = 1.0
+        
+        # Penalty for marked mismatches
+        if project.get('_type_mismatch'):
+            type_score *= 0.6  # 40% penalty but not eliminated
 
         delivery = project_data.get('delivery', 'in-person')
         delivery_score = 0.7
         if delivery in ['online-virtual', 'hybrid']:
             delivery_score = 0.9
+        
+        # Penalty for location mismatch
+        if project.get('_location_mismatch'):
+            delivery_score *= 0.7  # Reduce but don't eliminate
 
         duration = project_data.get('duration', 'unknown')
         duration_score = 0.8
@@ -194,12 +211,12 @@ class MatchingEngine:
 
         if scores['applicant_type_match'] >= 1.0:
             user_type = user_prefs['user_type']
-            if user_type in ['publicInstitution', 'startup']:
+            if user_type in ['publicInstitution', 'startup', 'privateOrganisation']:
                 reasons.append("Perfect organizational fit")
             else:
                 reasons.append("Perfect fit for your profile")
-        elif scores['applicant_type_match'] > 0.8:
-            reasons.append("Good applicant profile match")
+        elif scores['applicant_type_match'] > 0.6:
+            reasons.append("Compatible applicant profile")
 
         if scores['project_type_alignment'] >= 1.0:
             reasons.append("Matches your stated preferences")
@@ -219,31 +236,63 @@ class MatchingEngine:
         if budget and budget != 'Not specified':
             reasons.append("Funded opportunity")
 
+        if not reasons:
+            reasons.append("Matches your profile")
+
         return reasons[:4]
 
-    def find_recommendations(self, user_id: str, entity_type: str = 'individuals',
-                             top_k: int = 10) -> List[Dict]:
-        """Find project recommendations for a user"""
+    def find_recommendations(self, user_id: str, user_type: str = None, entity_type: str = None, top_k: int = None) -> List[Dict]:
+        """
+        Find project recommendations for a user
+        
+        Supports both naming conventions:
+        - user_type='individual' or 'organization' (singular)
+        - entity_type='individuals' or 'organizations' (plural)
+        """
+        # Support both parameter names and formats
+        if entity_type:
+            # Convert plural to singular
+            if entity_type == 'individuals':
+                final_type = 'individuals'
+            elif entity_type == 'organizations':
+                final_type = 'organizations'
+            else:
+                final_type = entity_type
+        elif user_type:
+            # Convert singular to plural for lookup
+            if user_type == 'individual':
+                final_type = 'individuals'
+            elif user_type == 'organization':
+                final_type = 'organizations'
+            else:
+                final_type = user_type
+        else:
+            final_type = 'individuals'  # Default
+        
+        if top_k is None:
+            top_k = config.MAX_RECOMMENDATIONS
+        
+        # Find user in embeddings data
         user_item = None
-        for item in self.embeddings_data.get(entity_type, []):
+        for item in self.embeddings_data.get(final_type, []):
             if item.get('id') == user_id:
                 user_item = item
                 break
 
         if not user_item:
-            print(f"❌ User {user_id} not found in {entity_type}")
+            print(f"❌ User {user_id} not found in {final_type}")
             return []
 
         user_embedding = user_item['embedding']
         user_data = user_item['original_data']
 
-        # FIXED: camelCase field names (support both for compatibility)
         user_name = user_data.get('fullName', user_data.get('full_name', user_data.get('name', user_id)))
         print(f"Finding recommendations for: {user_name}")
 
+        # Search for similar projects
         similar_projects = self.vector_store.search(
             user_embedding,
-            k=top_k * 2,
+            k=top_k * 3,  # Get more to account for filtering
             entity_types=['project_calls']
         )
 
@@ -251,12 +300,14 @@ class MatchingEngine:
             print("❌ No similar projects found")
             return []
 
+        # Apply soft filtering
         compatible_projects = self.apply_compatibility_filters(similar_projects, user_data)
 
         print(f"Found {len(compatible_projects)} compatible projects (from {len(similar_projects)} similar)")
 
+        # Score and rank
         recommendations = []
-        for project in compatible_projects[:top_k]:
+        for project in compatible_projects[:top_k * 2]:  # Process extra for better ranking
             scores = self.calculate_relevance_score(
                 project, user_data, project.get('similarity_score', 0)
             )
@@ -268,7 +319,7 @@ class MatchingEngine:
                 'project_type': project.get('original_data', {}).get('type', 'Unknown'),
                 'organization_name': project.get('original_data', {}).get('organization', {}).get('name', 'Unknown'),
                 'match_score': scores['final_score'],
-                'confidence': 'high' if scores['final_score'] > 0.8 else 'medium' if scores['final_score'] > 0.6 else 'low',
+                'confidence': 'high' if scores['final_score'] > 0.7 else 'medium' if scores['final_score'] > 0.5 else 'low',
                 'match_reasons': reasons,
                 'score_breakdown': scores,
                 'project_summary': {
@@ -282,6 +333,7 @@ class MatchingEngine:
             }
             recommendations.append(recommendation)
 
+        # Sort by score and return top K
         recommendations.sort(key=lambda x: x['match_score'], reverse=True)
 
-        return recommendations
+        return recommendations[:top_k]

@@ -26,20 +26,20 @@ def main():
 
     # Try to load complete cached system first (FASTEST PATH)
     if vector_store.load_index():
-        print("✅ Loaded complete FAISS index from cache!")
+        print("Loaded complete FAISS index from cache!")
 
         # Still need embeddings data for matching engine
         embeddings_data = embedding_service.load_embeddings()
         if embeddings_data:
-            print("✅ Loaded embeddings data from cache!")
+            print("Loaded embeddings data from cache!")
             matching_engine.set_embeddings_data(embeddings_data)
         else:
-            print("❌ FAISS index found but no embeddings data - rebuilding...")
+            print("FAISS index found but no embeddings data - rebuilding...")
             rebuild_everything()
             return
 
     else:
-        print("📂 No cached index found - building from scratch...")
+        print("No cached index found - building from scratch...")
 
         # Steps 1-3: Full pipeline
         print("\nStep 1: Loading Data...")
@@ -53,18 +53,18 @@ def main():
 
         if cached_embeddings:
             embeddings_data = cached_embeddings
-            print("✅ Using cached embeddings")
+            print("Using cached embeddings")
         else:
-            print("🔄 Generating new embeddings...")
+            print("Generating new embeddings...")
             embeddings_data = embedding_service.process_text_representations(text_representations)
             if embeddings_data:
                 embedding_service.save_embeddings(embeddings_data)
 
         # Build vector store with auto-save
-        print("\n🔄 Building FAISS index...")
+        print("\nBuilding FAISS index...")
         success = vector_store.load_or_build_index(embeddings_data)
         if not success:
-            print("❌ Failed to build vector store")
+            print("Failed to build vector store")
             return
 
         # Set up matching engine
@@ -72,7 +72,7 @@ def main():
 
     # Show system stats
     stats = vector_store.get_stats()
-    print(f"\nSystem Ready! 🎉")
+    print(f"\nSystem Ready!")
     print(f"  Total vectors: {stats.get('total_vectors', 'Unknown')}")
     print(f"  Dimension: {stats.get('dimension', 'Unknown')}")
     print(f"  Entity counts: {stats.get('entity_type_counts', {})}")
@@ -89,7 +89,7 @@ def main():
     # Test individuals
     individuals = embeddings_data.get('individuals', [])
     if individuals:
-        print(f"\n👤 Testing Individual Recommendations:")
+        print(f"\nTesting Individual Recommendations:")
         print("-" * 40)
 
         # Test first 2 individuals
@@ -121,7 +121,7 @@ def main():
     # Test organizations
     organizations = embeddings_data.get('organizations', [])
     if organizations:
-        print(f"\n🏢 Testing Organization Recommendations:")
+        print(f"\nTesting Organization Recommendations:")
         print("-" * 45)
 
         # Test first organization
@@ -150,15 +150,15 @@ def main():
             print("   No recommendations found")
 
     print(f"\n" + "=" * 60)
-    print("🎉 Testing Complete!")
-    print("💡 Next time you run this, it will load much faster from cache!")
-    print("🔄 To rebuild from scratch, delete files in data/processed/")
-    print("⚡ For fast testing only, use: python3 test_matching.py")
+    print("Testing Complete!")
+    print("Next time you run this, it will load much faster from cache!")
+    print("To rebuild from scratch, delete files in data/processed/")
+    print("For fast testing only, use: python3 test_matching.py")
 
 
 def rebuild_everything():
     """Rebuild everything from scratch"""
-    print("🔄 Rebuilding entire system from scratch...")
+    print("Rebuilding entire system from scratch...")
 
     # Clear all caches
     embedding_service = EmbeddingService()
@@ -171,9 +171,9 @@ def rebuild_everything():
     embeddings_cache = config.PROCESSED_DATA_DIR / "embeddings_cache.json"
     if embeddings_cache.exists():
         os.remove(embeddings_cache)
-        print("🗑️ Cleared embeddings cache")
+        print("Cleared embeddings cache")
 
-    print("✅ Caches cleared - restart to rebuild")
+    print("Caches cleared - restart to rebuild")
 
 
 if __name__ == "__main__":
