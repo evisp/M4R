@@ -6,6 +6,7 @@ from src.vector_store import VectorStore
 from src.matching_engine import MatchingEngine
 import config
 
+
 def main():
     print("Match4Research - Fast Matching Test")
     print("=" * 45)
@@ -60,15 +61,16 @@ def main():
     
     print(f"\nAvailable Individuals ({len(individuals)}):")
     for i, ind in enumerate(individuals):
-        name = ind['original_data']['fullName']
-        title = ind['original_data']['title']
+        # FIXED: camelCase with fallback
+        name = ind['original_data'].get('fullName', ind['original_data'].get('full_name', 'Unknown'))
+        title = ind['original_data'].get('title', 'Unknown')
         location = ind['original_data'].get('location', 'Unknown')
         print(f"  {i+1}. {name} - {title} ({location})")
     
     print(f"\nAvailable Organizations ({len(organizations)}):")
     for i, org in enumerate(organizations):
-        name = org['original_data']['name']
-        org_type = org['original_data']['type']
+        name = org['original_data'].get('name', 'Unknown')
+        org_type = org['original_data'].get('type', 'Unknown')
         location = org['original_data'].get('location', 'Unknown')
         org_number = len(individuals) + i + 1
         print(f"  {org_number}. {name} - {org_type} ({location})")
@@ -90,8 +92,9 @@ def main():
                 # Test individual
                 user = individuals[choice_num - 1]
                 user_id = user['id']
-                user_name = user['original_data']['fullName']
-                user_title = user['original_data']['title']
+                # FIXED: camelCase with fallback
+                user_name = user['original_data'].get('fullName', user['original_data'].get('full_name', 'Unknown'))
+                user_title = user['original_data'].get('title', 'Unknown')
                 
                 print(f"\n🔍 Testing: {user_name} ({user_title})")
                 recommendations = matching_engine.find_recommendations(
@@ -107,8 +110,8 @@ def main():
                 org_index = choice_num - len(individuals) - 1
                 org = organizations[org_index]
                 org_id = org['id']
-                org_name = org['original_data']['name']
-                org_type = org['original_data']['type']
+                org_name = org['original_data'].get('name', 'Unknown')
+                org_type = org['original_data'].get('type', 'Unknown')
                 
                 print(f"\n🔍 Testing: {org_name} ({org_type})")
                 recommendations = matching_engine.find_recommendations(
@@ -127,6 +130,7 @@ def main():
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
             break
+
 
 def display_recommendations(recommendations):
     """Display recommendations in a nice format"""
@@ -160,6 +164,7 @@ def display_recommendations(recommendations):
             print(f"      📄 Summary: {preview}")
         
         print()  
+
 
 if __name__ == "__main__":
     main()

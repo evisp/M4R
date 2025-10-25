@@ -95,8 +95,9 @@ def main():
         # Test first 2 individuals
         for i, individual in enumerate(individuals[:2]):
             user_id = individual['id']
-            user_name = individual['original_data']['fullName']
-            user_title = individual['original_data']['title']
+            # FIXED: camelCase with fallback for compatibility
+            user_name = individual['original_data'].get('fullName', individual['original_data'].get('full_name', 'Unknown'))
+            user_title = individual['original_data'].get('title', 'Unknown')
 
             print(f"\n{i + 1}. {user_name} ({user_title})")
             print("-" * 50)
@@ -126,8 +127,8 @@ def main():
         # Test first organization
         org = organizations[0]
         org_id = org['id']
-        org_name = org['original_data']['name']
-        org_type = org['original_data']['type']
+        org_name = org['original_data'].get('name', 'Unknown')
+        org_type = org['original_data'].get('type', 'Unknown')
 
         print(f"\n{org_name} ({org_type})")
         print("-" * 50)

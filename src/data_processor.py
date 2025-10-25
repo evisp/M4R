@@ -27,8 +27,23 @@ class DataProcessor:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                data = json.load(file)
+                raw_data = json.load(file)
                 
+                # Handle different JSON structures
+                if isinstance(raw_data, dict):
+                    # Check if it has a wrapper (like {"individuals": [...], "pagination": {...}})
+                    if data_type in raw_data:
+                        data = raw_data[data_type]
+                    else:
+                        # Single object, wrap in list
+                        data = [raw_data]
+                elif isinstance(raw_data, list):
+                    # Direct array
+                    data = raw_data
+                else:
+                    print(f"✗ Unexpected data format in {file_path}")
+                    return []
+
                 # Parse applicantTypes JSON strings in projects if needed
                 if data_type == 'project_calls':
                     for item in data:
@@ -37,6 +52,14 @@ class DataProcessor:
                                 item['applicantTypes'] = json.loads(item['applicantTypes'])
                             except Exception:
                                 item['applicantTypes'] = []
+
+                # Normalize each record
+                if data_type == 'individuals':
+                    data = [self.normalize_individual(d) for d in data]
+                elif data_type == 'organizations':
+                    data = [self.normalize_organization(d) for d in data]
+                elif data_type == 'project_calls':
+                    data = [self.normalize_project_call(d) for d in data]
 
                 self.loaded_data[data_type] = data
                 print(f"✓ Loaded {len(data)} {data_type}")
@@ -49,6 +72,8 @@ class DataProcessor:
             return []
         except Exception as e:
             print(f"✗ Error loading {file_path}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def load_all_data(self) -> Dict[str, List[Dict]]:
@@ -113,7 +138,7 @@ class DataProcessor:
         else:
             validation_results['individuals'] = False
 
-        # Check organizations structure (corrected: areasOfInterest spelling)
+        # Check organizations structure
         organizations = self.loaded_data.get('organizations', [])
         if organizations:
             sample = organizations[0]
@@ -133,15 +158,25 @@ class DataProcessor:
 
         return validation_results
 
-    # Placeholder methods for future normalization (Step 2)
     def normalize_individual(self, individual_data: Dict) -> Dict:
         """Normalize individual JSON to standard format"""
-        pass
+        individual_data.setdefault('fullName', 'Unknown')
+        individual_data.setdefault('skills', [])
+        individual_data.setdefault('areasOfExpertise', [])
+        individual_data.setdefault('preferences', {})
+        return individual_data
 
     def normalize_organization(self, org_data: Dict) -> Dict:
         """Normalize organization JSON to standard format"""
-        pass
+        org_data.setdefault('name', 'Unknown')
+        org_data.setdefault('areasOfInterest', [])
+        org_data.setdefault('preferences', {})
+        return org_data
 
     def normalize_project_call(self, project_data: Dict) -> Dict:
         """Normalize project call JSON to standard format"""
-        pass
+        project_data.setdefault('title', 'Unknown')
+        project_data.setdefault('summary', '')
+        project_data.setdefault('requirements', '')
+        project_data.setdefault('applicantTypes', [])
+        return project_data

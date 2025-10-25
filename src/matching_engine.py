@@ -23,7 +23,7 @@ class MatchingEngine:
         seeking = []
         if preferences.get('collaborations'):
             seeking.append('collaboration')
-        if preferences.get('grantFundedProjects'):
+        if preferences.get('grantFundedProjects'):  # FIXED: camelCase
             seeking.extend(['research', 'grant'])
         if preferences.get('funding'):
             seeking.append('funding')
@@ -37,7 +37,7 @@ class MatchingEngine:
             'location': user_data.get('location', 'any'),
             'user_type': user_data.get('type', 'unknown'),
             'skills': [skill.get('skill', '') for skill in user_data.get('skills', [])],
-            'expertise': [area.get('industry', '') for area in user_data.get('areasOfExpertise', [])],
+            'expertise': [area.get('industry', '') for area in user_data.get('areasOfExpertise', [])],  # FIXED: camelCase
         }
 
     def apply_compatibility_filters(self, projects: List[Dict], user_data: Dict) -> List[Dict]:
@@ -46,11 +46,13 @@ class MatchingEngine:
         user_type = user_prefs['user_type']
         user_location = user_prefs['location']
 
-        # FIXED type mappings - bridge the gap between user types and project applicant types
+        # UPDATED type mappings - includes new types from database
         type_mapping = {
             # Individual types - map to what projects expect
             'student/early-career': ['student', 'student/early-career'],
             'professional/consultant': ['professional', 'professional/consultant'],
+            'researcher/academic': ['professional', 'research', 'academic_institution'],  # NEW
+            'entrepreneur/inovator': ['entrepreneur', 'startup', 'company'],  # NEW
 
             # Organization types - map to what projects expect  
             'publicInstitution': ['professional', 'research', 'academic_institution'],
@@ -77,8 +79,8 @@ class MatchingEngine:
         for project in projects:
             project_data = project.get('original_data', {})
 
-            # Parse applicantTypes (handle string or list)
-            applicant_types_raw = project_data.get('applicantTypes', [])
+            # Parse applicantTypes (handle string or list) - support both camelCase and snake_case
+            applicant_types_raw = project_data.get('applicantTypes', project_data.get('applicant_types', []))
             applicant_types = []
             if isinstance(applicant_types_raw, str):
                 try:
@@ -118,7 +120,8 @@ class MatchingEngine:
 
         semantic_score = max(0, similarity_score)
 
-        applicant_types = project_data.get('applicantTypes', [])
+        # Support both camelCase and snake_case
+        applicant_types = project_data.get('applicantTypes', project_data.get('applicant_types', []))
         user_type = user_prefs['user_type']
 
         # Enhanced type scoring for better matching
@@ -127,6 +130,10 @@ class MatchingEngine:
         if user_type == 'professional/consultant' and 'professional' in applicant_types:
             type_score = 1.0
         elif user_type == 'student/early-career' and 'student' in applicant_types:
+            type_score = 1.0
+        elif user_type == 'researcher/academic' and any(t in applicant_types for t in ['professional', 'research', 'academic_institution']):
+            type_score = 1.0
+        elif user_type == 'entrepreneur/inovator' and any(t in applicant_types for t in ['entrepreneur', 'startup', 'company']):
             type_score = 1.0
         elif user_type == 'publicInstitution' and any(t in applicant_types for t in ['research', 'academic_institution', 'professional']):
             type_score = 1.0
@@ -190,7 +197,7 @@ class MatchingEngine:
             if user_type in ['publicInstitution', 'startup']:
                 reasons.append("Perfect organizational fit")
             else:
-                reasons.append(f"Perfect fit for your profile")
+                reasons.append("Perfect fit for your profile")
         elif scores['applicant_type_match'] > 0.8:
             reasons.append("Good applicant profile match")
 
@@ -230,7 +237,9 @@ class MatchingEngine:
         user_embedding = user_item['embedding']
         user_data = user_item['original_data']
 
-        print(f"Finding recommendations for: {user_data.get('fullName', user_data.get('name', user_id))}")
+        # FIXED: camelCase field names (support both for compatibility)
+        user_name = user_data.get('fullName', user_data.get('full_name', user_data.get('name', user_id)))
+        print(f"Finding recommendations for: {user_name}")
 
         similar_projects = self.vector_store.search(
             user_embedding,
