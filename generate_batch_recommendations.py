@@ -40,13 +40,13 @@ def generate_batch_recommendations(top_k=5, output_file=None):
     # Load or build system
     print("\n2. Loading/Building vector store...")
     if vector_store.load_index():
-        print("   ✅ Loaded FAISS index from cache")
+        print("   Loaded FAISS index from cache")
         embeddings_data = embedding_service.load_embeddings()
         if not embeddings_data:
-            print("   ❌ Missing embeddings data")
+            print("   Missing embeddings data")
             return None
     else:
-        print("   📂 Building from scratch...")
+        print("   Building from scratch...")
         data = processor.load_all_data()
         text_representations = text_gen.generate_text_for_dataset(data)
         embeddings_data = embedding_service.process_text_representations(text_representations)
@@ -62,9 +62,9 @@ def generate_batch_recommendations(top_k=5, output_file=None):
     projects = embeddings_data.get('project_calls', [])
     
     print(f"\n3. Processing entities:")
-    print(f"   👤 Individuals: {len(individuals)}")
-    print(f"   🏢 Organizations: {len(organizations)}")
-    print(f"   📋 Projects: {len(projects)}")
+    print(f"   Individuals: {len(individuals)}")
+    print(f"   Organizations: {len(organizations)}")
+    print(f"   Projects: {len(projects)}")
     
     # Initialize results structure
     results = {
@@ -253,7 +253,7 @@ def generate_batch_recommendations(top_k=5, output_file=None):
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     
-    print(f"\n6. ✅ Recommendations saved to: {output_path}")
+    print(f"\n6. Recommendations saved to: {output_path}")
     print(f"\n{'=' * 60}")
     print("GENERATION SUMMARY")
     print("=" * 60)
@@ -286,10 +286,10 @@ def main():
     )
     
     if results:
-        print("\n✅ Batch generation complete!")
-        print(f"📄 Results ready for API consumption")
+        print("\n Batch generation complete!")
+        print(f"  Results ready for API consumption")
     else:
-        print("\n❌ Batch generation failed")
+        print("\n Batch generation failed")
 
 
 if __name__ == "__main__":

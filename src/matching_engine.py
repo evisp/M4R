@@ -109,8 +109,8 @@ class MatchingEngine:
             project['_location_mismatch'] = not location_compatible
 
             # Only reject if BOTH type AND location don't match (very strict case)
-            if project.get('_type_mismatch') and project.get('_location_mismatch'):
-                continue  # Skip only if both fail
+            #if project.get('_type_mismatch') and project.get('_location_mismatch'):
+            #    continue  # Skip only if both fail
 
             # Skip inactive projects (hard filter)
             if project_data.get('status', '').lower() not in ['active', '']:
