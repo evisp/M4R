@@ -41,7 +41,7 @@ class MatchingEngine:
         }
 
     def apply_compatibility_filters(self, projects: List[Dict], user_data: Dict) -> List[Dict]:
-        """Filter projects - SOFT FILTERING: marks mismatches instead of rejecting"""
+        """Filter projects - VERY SOFT FILTERING: marks mismatches but rarely rejects"""
         user_prefs = self.get_user_preferences(user_data)
         user_type = user_prefs['user_type']
         user_location = user_prefs['location']
@@ -95,7 +95,7 @@ class MatchingEngine:
             project['_type_mismatch'] = False
             if applicant_types:
                 if not any(utype in applicant_types for utype in user_compatible_types):
-                    project['_type_mismatch'] = True  # Mark but don't reject
+                    project['_type_mismatch'] = True
 
             # Location compatibility - SOFT FILTER
             project_location = project_data.get('location', 'any')
@@ -108,12 +108,17 @@ class MatchingEngine:
             )
             project['_location_mismatch'] = not location_compatible
 
-            # Only reject if BOTH type AND location don't match (very strict case)
-            #if project.get('_type_mismatch') and project.get('_location_mismatch'):
-            #    continue  # Skip only if both fail
-
-            # Skip inactive projects (hard filter)
-            if project_data.get('status', '').lower() not in ['active', '']:
+            # HARD FILTERS - Only reject clearly inappropriate projects
+            
+            # Filter 1: Status-based (inactive/cancelled/closed)
+            status = project_data.get('status', '').lower().strip()
+            if status in ['inactive', 'closed', 'expired', 'cancelled', 'canceled', 'draft', 'deleted']:
+                continue
+            
+            # Filter 2: Test/Demo/Sample projects
+            title = project_data.get('title', '').lower().strip()
+            slug = project_data.get('slug', '').lower().strip()
+            if 'test' in title or 'test' in slug or 'demo' in title or 'sample' in title:
                 continue
 
             compatible_projects.append(project)
@@ -151,7 +156,7 @@ class MatchingEngine:
         
         # Penalty for marked mismatches
         if project.get('_type_mismatch'):
-            type_score *= 0.6  # 40% penalty but not eliminated
+            type_score *= 0.6
 
         delivery = project_data.get('delivery', 'in-person')
         delivery_score = 0.7
@@ -160,7 +165,7 @@ class MatchingEngine:
         
         # Penalty for location mismatch
         if project.get('_location_mismatch'):
-            delivery_score *= 0.7  # Reduce but don't eliminate
+            delivery_score *= 0.7
 
         duration = project_data.get('duration', 'unknown')
         duration_score = 0.8
@@ -181,12 +186,13 @@ class MatchingEngine:
         elif 'funding' in seeking and 'funding' in project_type:
             type_alignment_score = 0.9
 
+        # Updated weights - Trust semantic similarity more (Option 2: Balanced)
         final_score = (
-            semantic_score * 0.4 +
-            type_score * 0.25 +
-            type_alignment_score * 0.20 +
-            delivery_score * 0.10 +
-            duration_score * 0.05
+            semantic_score * 0.55 +
+            type_score * 0.20 +
+            type_alignment_score * 0.15 +
+            delivery_score * 0.07 +
+            duration_score * 0.03
         )
 
         return {
@@ -251,7 +257,6 @@ class MatchingEngine:
         """
         # Support both parameter names and formats
         if entity_type:
-            # Convert plural to singular
             if entity_type == 'individuals':
                 final_type = 'individuals'
             elif entity_type == 'organizations':
@@ -259,7 +264,6 @@ class MatchingEngine:
             else:
                 final_type = entity_type
         elif user_type:
-            # Convert singular to plural for lookup
             if user_type == 'individual':
                 final_type = 'individuals'
             elif user_type == 'organization':
@@ -267,7 +271,7 @@ class MatchingEngine:
             else:
                 final_type = user_type
         else:
-            final_type = 'individuals'  # Default
+            final_type = 'individuals'
         
         if top_k is None:
             top_k = config.MAX_RECOMMENDATIONS
@@ -280,7 +284,7 @@ class MatchingEngine:
                 break
 
         if not user_item:
-            print(f"❌ User {user_id} not found in {final_type}")
+            print(f"User {user_id} not found in {final_type}")
             return []
 
         user_embedding = user_item['embedding']
@@ -289,25 +293,28 @@ class MatchingEngine:
         user_name = user_data.get('fullName', user_data.get('full_name', user_data.get('name', user_id)))
         print(f"Finding recommendations for: {user_name}")
 
-        # Search for similar projects
+        # Search for similar projects (get enough to account for filtering)
         similar_projects = self.vector_store.search(
             user_embedding,
-            k=top_k * 3,  # Get more to account for filtering
+            k=max(top_k * 5, 50),
             entity_types=['project_calls']
         )
 
         if not similar_projects:
-            print("❌ No similar projects found")
+            print("No similar projects found")
             return []
 
-        # Apply soft filtering
+        # Apply very soft filtering
         compatible_projects = self.apply_compatibility_filters(similar_projects, user_data)
 
         print(f"Found {len(compatible_projects)} compatible projects (from {len(similar_projects)} similar)")
 
-        # Score and rank
+        # OPTIMIZED: Only score top candidates (2x top_k for better ranking)
+        candidates_to_score = compatible_projects[:top_k * 2]
+        
+        # Score and rank only the top candidates
         recommendations = []
-        for project in compatible_projects[:top_k * 2]:  # Process extra for better ranking
+        for project in candidates_to_score:
             scores = self.calculate_relevance_score(
                 project, user_data, project.get('similarity_score', 0)
             )
@@ -333,7 +340,10 @@ class MatchingEngine:
             }
             recommendations.append(recommendation)
 
-        # Sort by score and return top K
+        # Sort by score and return exactly top_k
         recommendations.sort(key=lambda x: x['match_score'], reverse=True)
+        
+        final_recommendations = recommendations[:top_k]
+        print(f"Returning top {len(final_recommendations)} recommendations (scored {len(candidates_to_score)} candidates)")
 
-        return recommendations[:top_k]
+        return final_recommendations

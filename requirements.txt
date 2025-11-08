@@ -1,25 +1,16 @@
-# Core ML/AI libraries
-sentence-transformers==2.7.0
-faiss-cpu==1.8.0
-numpy==1.24.3
-pandas==2.0.3
+# Core AI/ML
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+numpy>=1.24.0
+torch>=2.0.0
 
-# Text processing
-nltk==3.8.1
+# API and Data Handling
+requests>=2.31.0
+python-dotenv>=1.0.0
 
-# API framework (for future)
-fastapi==0.104.1
-uvicorn==0.24.0
-
-# Development tools
-pytest==7.4.0
-python-dotenv==1.0.0
-
-# Optional: LLM integration
-google-generativeai==0.3.0  # For Gemini (optional)
+# API Framework (optional, for REST API)
+fastapi>=0.104.0
+uvicorn>=0.24.0
 
 # Utilities
-tqdm==4.66.0
-scikit-learn==1.3.0
-requests
-python-dotenv==1.0.0
+tqdm>=4.65.0

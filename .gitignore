@@ -2,10 +2,7 @@
 # ==========================================
 
 # Data files (exclude all real and sample data)
-data/sample/*.json
-data/processed/
-data/raw/
-*.json
+data/
 *.sql 
 
 # Vector database and embeddings
@@ -81,7 +78,7 @@ pids/
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage/
 *.lcov
 
@@ -98,4 +95,3 @@ models/
 *.tmp
 *.temp
 .cache/
-.env
