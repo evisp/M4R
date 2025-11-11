@@ -2,13 +2,12 @@
 sentence-transformers>=2.2.0
 faiss-cpu>=1.7.4
 numpy>=1.24.0
-torch>=2.0.0
 
 # API and Data Handling
 requests>=2.31.0
 python-dotenv>=1.0.0
 
-# API Framework (optional, for REST API)
+# API Framework
 fastapi>=0.104.0
 uvicorn>=0.24.0
 
